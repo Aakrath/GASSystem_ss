@@ -13,5 +13,7 @@ UCLASS()
 class SS_API AssCharacter : public AssCharacterBase
 {
 	GENERATED_BODY()
+public:
+	AssCharacter();
 	
 };
