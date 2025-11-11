@@ -15,6 +15,11 @@ AssCharacterBase::AssCharacterBase()
 	Weapon->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
+UAbilitySystemComponent* AssCharacterBase::GetAbilitySystemComponent() const
+{
+	return AbilitySystemComponent;
+}
+
 
 void AssCharacterBase::BeginPlay()
 {

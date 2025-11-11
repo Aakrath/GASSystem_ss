@@ -10,7 +10,7 @@
 class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
-
+class IEnemyInterface;
 /**
  * 
  */
@@ -20,6 +20,7 @@ class SS_API AssPlayerController : public APlayerController
 	GENERATED_BODY()
 public:
 	AssPlayerController();
+	virtual void PlayerTick(float DeltaTime) override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -32,4 +33,8 @@ private:
 	TObjectPtr<UInputAction> MoveAction;
 
 	void Move(const struct FInputActionValue& InputActionValue);
+
+	void CursorTrace();
+	IEnemyInterface*LastActor;
+	IEnemyInterface*ThisActor;
 };

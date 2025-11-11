@@ -4,33 +4,30 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystemInterface.h"
-#include "GameFramework/Character.h"
-#include "ssCharacterBase.generated.h"
+#include "GameFramework/PlayerState.h"
+#include "ssPlayerState.generated.h"
+
 
 class UAbilitySystemComponent;
 class UAttributeSet;
 
-UCLASS(Abstract)
-class SS_API AssCharacterBase : public ACharacter, public IAbilitySystemInterface
+/**
+ * 
+ */
+UCLASS()
+class SS_API AssPlayerState : public APlayerState, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
-
-public:
-	
-	AssCharacterBase();
+	public:
+	AssPlayerState();
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	UAttributeSet* GetAttributeSet() const {return AttributeSet;}
+	protected:
 
-protected:
-	
-	virtual void BeginPlay() override;
-	
-	UPROPERTY(EditAnywhere, Category = "Combat") //Burada skeletalmesh için tanımlama yapılıyor//
-	TObjectPtr<USkeletalMeshComponent> Weapon;
-	
 	UPROPERTY()
 	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
 	
 	UPROPERTY()
 	TObjectPtr<UAttributeSet> AttributeSet;
+	
 };

@@ -15,5 +15,8 @@ class SS_API AssCharacter : public AssCharacterBase
 	GENERATED_BODY()
 public:
 	AssCharacter();
-	
+	virtual void PossessedBy(AController* NewController) override;
+	virtual void OnRep_PlayerState() override;
+private:
+	void InitAbiliyActorInfo();
 };
