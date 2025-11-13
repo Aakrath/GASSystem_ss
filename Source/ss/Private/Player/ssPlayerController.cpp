@@ -24,43 +24,49 @@ void AssPlayerController::CursorTrace()
 	GetHitResultUnderCursor(ECC_Visibility, false, CursorHit);
 	if (!CursorHit.bBlockingHit) return;
 
+	AActor* HitActor = CursorHit.GetActor();
+
 	LastActor = ThisActor;
-	ThisActor = Cast<IEnemyInterface>(CursorHit.GetActor());
+
+	if (HitActor && HitActor->GetClass()->ImplementsInterface(UEnemyInterface::StaticClass()))
+	{
+		ThisActor.SetObject(HitActor);
+		ThisActor.SetInterface(Cast<IEnemyInterface>(HitActor));
+	}
+	else
+	{
+		ThisActor.SetObject(nullptr);
+		ThisActor.SetInterface(nullptr);
+	}
 
 	/**
-	 * line trace from cursor.There Are several scenario
+	 * line trace from cursor. There are several scenarios
 	 */
-	if (LastActor == nullptr)
+	if (!LastActor)
 	{
-		if (ThisActor != nullptr)
+		if (ThisActor)
 		{
 			// Case B
-			ThisActor-> HighLightActor();
+			ThisActor->HighLightActor();
 		}
-		else
-		{
-			// Case A - both are null, do nothing
-		}
+		// Case A - both are null, do nothing
 	}
-	else // LastActor is valid
+	else
 	{
-		if (ThisActor == nullptr)
+		if (!ThisActor)
 		{
 			// Case C
 			LastActor->UnHighLightActor();
 		}
-		else // both actors are valid
+		else
 		{
 			if (LastActor != ThisActor)
 			{
 				// Case D
 				LastActor->UnHighLightActor();
-				ThisActor-> HighLightActor();
+				ThisActor->HighLightActor();
 			}
-			else
-			{
-				// Case E - do nothing
-			}
+			// Case E - do nothing
 		}
 	}
 }
@@ -73,8 +79,10 @@ void AssPlayerController::BeginPlay()
 	check(ssContext);
 
 	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
-	check(Subsystem);
-	Subsystem->AddMappingContext(ssContext, 0);
+	if (Subsystem)
+	{
+		Subsystem->AddMappingContext(ssContext, 0);
+	}
 
 	bShowMouseCursor = true;
 	DefaultMouseCursor = EMouseCursor::Default;

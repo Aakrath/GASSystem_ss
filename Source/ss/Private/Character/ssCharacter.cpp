@@ -5,7 +5,9 @@
 
 #include "AbilitySystemComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Player/ssPlayerController.h"
 #include "Player/ssPlayerState.h"
+#include "UI/HUD/ssHUD.h"
 
 AssCharacter::AssCharacter()
 {
@@ -44,5 +46,13 @@ void AssCharacter::InitAbiliyActorInfo()
 	ssPlayerState->GetAbilitySystemComponent()->InitAbilityActorInfo(ssPlayerState, this);
 	AbilitySystemComponent = ssPlayerState->GetAbilitySystemComponent();
 	AttributeSet = ssPlayerState->GetAttributeSet();
+	
+	if (AssPlayerController* ssPlayerController = Cast<AssPlayerController>(GetController()))
+	{
+		if (AssHUD* ssHUD = Cast<AssHUD>(ssPlayerController->GetHUD()))
+		{
+			ssHUD->InitOverlay(ssPlayerController, ssPlayerState, AbilitySystemComponent, AttributeSet);
+		}
+	}
 }
 
