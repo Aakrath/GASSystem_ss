@@ -13,6 +13,7 @@ UOverlayWidgetController* AssHUD::GetOverlayWidgetController(const FWidgetContro
 		OverlayWidgetController = NewObject<UOverlayWidgetController>(this, OverlayWidgetControllerClass);
 		OverlayWidgetController->SetWidgetControllerParams(WCParams);
 
+		OverlayWidgetController->BindCallbacksToDependencies();
 		return OverlayWidgetController;
 	}
 	return OverlayWidgetController;
@@ -22,17 +23,15 @@ void AssHUD::InitOverlay(APlayerController* PC, APlayerState* PS, UAbilitySystem
 {
 	checkf(OverlayWidgetClass, TEXT("Overlay Widget Class uninitialized, please fill out BP_ssHUD"));
 	checkf(OverlayWidgetControllerClass, TEXT("Overlay Widget Controller Class uninitialized, please fill out BP_ssHUD"));
-	
+
 	UUserWidget* Widget = CreateWidget<UUserWidget>(GetWorld(), OverlayWidgetClass);
-	Widget->AddToViewport();
 	OverlayWidget = Cast<UssUserWidget>(Widget);
 
 	const FWidgetControllerParams WidgetControllerParams(PC, PS, ASC, AS);
 	UOverlayWidgetController* WidgetController = GetOverlayWidgetController(WidgetControllerParams);
 
 	OverlayWidget->SetWidgetController(WidgetController);
-
 	WidgetController->BroadcastInitialValues();
-	
 	Widget->AddToViewport();
 }
+

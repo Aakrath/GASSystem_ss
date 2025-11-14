@@ -13,4 +13,10 @@ void UssWidgetController::SetWidgetControllerParams(const FWidgetControllerParam
 
 void UssWidgetController::BroadcastInitialValues()
 {
+
+}
+
+void UssWidgetController::BindCallbacksToDependencies()
+{
+	
 }

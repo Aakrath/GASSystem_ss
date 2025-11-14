@@ -34,6 +34,7 @@ void AssEffectActor::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor*
 		
 		UssAttributeSet* MutablessAttributeSet = const_cast<UssAttributeSet*>(ssAttributeSet);
 		MutablessAttributeSet->SetHealth(ssAttributeSet->GetHealth() +25.f);
+		MutablessAttributeSet->SetMana(ssAttributeSet->GetMana() -25.f);
 		Destroy();
 	}
 }
