@@ -1,31 +1,54 @@
 // Copyright SS Mechanics
 
-
 #include "Player/ssPlayerController.h"
-#include "EnhancedInputSubsystems.h"
-#include "EnhancedInputComponent.h"
-#include "Interaction/EnemyInterface.h"
 
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "Interaction/EnemyInterface.h"
+#include "Net/UnrealNetwork.h"
+
+// -----------------------------------------------------
+//                Constructor
+// -----------------------------------------------------
 AssPlayerController::AssPlayerController()
 {
 	bReplicates = true;
+
+	InventoryComponent = CreateDefaultSubobject<UssInventoryComponent>(TEXT("InventoryComponent"));
+	InventoryComponent->SetIsReplicated(true);
 }
 
+// -----------------------------------------------------
+//        Ability System Access
+// -----------------------------------------------------
+UAbilitySystemComponent* AssPlayerController::GetAbilitySystemComponent() const
+{
+	return UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetPawn());
+}
+
+void AssPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AssPlayerController, InventoryComponent);
+}
+
+// -----------------------------------------------------
+//                Tick / Cursor Trace
+// -----------------------------------------------------
 void AssPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
-
 	CursorTrace();
 }
 
 void AssPlayerController::CursorTrace()
 {
-	FHitResult CursorHit;
-	GetHitResultUnderCursor(ECC_Visibility, false, CursorHit);
-	if (!CursorHit.bBlockingHit) return;
+	FHitResult Hit;
+	GetHitResultUnderCursor(ECC_Visibility, false, Hit);
+	if (!Hit.bBlockingHit) return;
 
-	AActor* HitActor = CursorHit.GetActor();
-
+	AActor* HitActor = Hit.GetActor();
 	LastActor = ThisActor;
 
 	if (HitActor && HitActor->GetClass()->ImplementsInterface(UEnemyInterface::StaticClass()))
@@ -39,46 +62,35 @@ void AssPlayerController::CursorTrace()
 		ThisActor.SetInterface(nullptr);
 	}
 
-	/**
-	 * line trace from cursor. There are several scenarios
-	 */
 	if (!LastActor)
 	{
-		if (ThisActor)
-		{
-			// Case B
-			ThisActor->HighLightActor();
-		}
-		// Case A - both are null, do nothing
+		if (ThisActor) ThisActor->HighLightActor();
 	}
 	else
 	{
 		if (!ThisActor)
 		{
-			// Case C
 			LastActor->UnHighLightActor();
 		}
-		else
+		else if (LastActor != ThisActor)
 		{
-			if (LastActor != ThisActor)
-			{
-				// Case D
-				LastActor->UnHighLightActor();
-				ThisActor->HighLightActor();
-			}
-			// Case E - do nothing
+			LastActor->UnHighLightActor();
+			ThisActor->HighLightActor();
 		}
 	}
 }
 
-
-
+// -----------------------------------------------------
+//                Begin Play
+// -----------------------------------------------------
 void AssPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 	check(ssContext);
 
-	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
+	UEnhancedInputLocalPlayerSubsystem* Subsystem =
+		ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
+
 	if (Subsystem)
 	{
 		Subsystem->AddMappingContext(ssContext, 0);
@@ -87,35 +99,58 @@ void AssPlayerController::BeginPlay()
 	bShowMouseCursor = true;
 	DefaultMouseCursor = EMouseCursor::Default;
 
-	FInputModeGameAndUI InputModeData;
-	InputModeData.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-	InputModeData.SetHideCursorDuringCapture(false);
-	SetInputMode(InputModeData);
-
+	FInputModeGameAndUI Mode;
+	Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	Mode.SetHideCursorDuringCapture(false);
+	SetInputMode(Mode);
 }
 
+// -----------------------------------------------------
+//                Input Setup
+// -----------------------------------------------------
 void AssPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
 
-	UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(InputComponent);
+	UEnhancedInputComponent* EIC = CastChecked<UEnhancedInputComponent>(InputComponent);
 
-	EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AssPlayerController::Move);
-}
+	// Movement
+	EIC->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AssPlayerController::Move);
 
-void AssPlayerController::Move(const struct FInputActionValue& InputActionValue)
-{
-	const FVector2D InputAxisVector = InputActionValue.Get<FVector2D>();
-	const FRotator Rotation= GetControlRotation();
-	const FRotator YawRotation (0.f, Rotation.Yaw, 0.f);
-
-	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-
-	if (APawn* ControlledPawn = GetPawn<APawn>())
+	// Interact / Use Item
+	if (InteractAction)
 	{
-		ControlledPawn->AddMovementInput(ForwardDirection, InputAxisVector.Y);
-		ControlledPawn->AddMovementInput(RightDirection, InputAxisVector.X);
+		EIC->BindAction(InteractAction, ETriggerEvent::Started, this, &AssPlayerController::Interact);
 	}
 }
 
+// -----------------------------------------------------
+//                Input Functions
+// -----------------------------------------------------
+void AssPlayerController::Interact(const FInputActionValue& Value)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan, TEXT("Interact Triggered"));
+
+	if (!InventoryComponent) return;
+
+	// Deneme için sabit bir Tag kullanıyoruz (BP'de değiştirilebilir)
+	FGameplayTag ItemToUse = FGameplayTag::RequestGameplayTag(FName("Item.Potion.Health"));
+
+	InventoryComponent->UseItem(ItemToUse, 1);
+}
+
+void AssPlayerController::Move(const FInputActionValue& Value)
+{
+	const FVector2D Input = Value.Get<FVector2D>();
+	const FRotator Rot = GetControlRotation();
+	const FRotator YawRot(0.f, Rot.Yaw, 0.f);
+
+	const FVector Forward = FRotationMatrix(YawRot).GetUnitAxis(EAxis::X);
+	const FVector Right   = FRotationMatrix(YawRot).GetUnitAxis(EAxis::Y);
+
+	if (APawn* P = GetPawn<APawn>())
+	{
+		P->AddMovementInput(Forward, Input.Y);
+		P->AddMovementInput(Right, Input.X);
+	}
+}
